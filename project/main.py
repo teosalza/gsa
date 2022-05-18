@@ -37,18 +37,22 @@ def getMass(agent_fitness, bestFitness, worstFitness):
     return mi
 def getSingleMass(agent_fitness, bestFitness, worstFitness):
     return  (agent_fitness - worstFitness) / (bestFitness - worstFitness)
-def getAcceleration(agent,population_array,gCostant, dimension):
+def getAcceleration(agent,population_array,gCostant, dimension, activate, iteration):
     filtered_population = [el for el in population_array if el.id != agent.id]
+    filtered_population.sort(key = (lambda x: x.fit))
+    
     acc = np.zeros(dimension)  
     Fi = 0
-    
+    kbest = dimension
+    if activate : 
+        kbest = 1 + (dimension - iteration * 0.03)
     for d in range(dimension):
         for (idx,j) in enumerate(filtered_population):
-            R = math.sqrt((agent.pos[d] - j.pos[d])**2)
-            Fij = gCostant * ((agent.mass * j.mass) / (R + np.finfo(float).eps)) * (j.pos[d] - agent.pos[d])
-            Fi += random.random() * Fij
-        # acc[d] = (Fi / agent.mass)
-        acc[d] = (Fi )
+            if idx < kbest:
+                R = math.sqrt((agent.pos[d] - j.pos[d])**2)
+                Fij = gCostant * ((agent.mass * j.mass) / (R + np.finfo(float).eps)) * (j.pos[d] - agent.pos[d])
+                Fi += random.random() * Fij
+        acc[d] = (Fi/ agent.mass)
     return acc
 def getVelocityV1(agent,dimension):
     v1=[None] * dimension
@@ -77,6 +81,8 @@ bestFitness = 0
 worstFitness = 0
 bestAgent = ""
 worstAgent = ""
+activate = False
+
 #generate population
 pos_generation = np.random.uniform(0,1,(population_number,dimension))*(high_bound-low_bond)+low_bond
 
@@ -86,6 +92,8 @@ for (idx,pos) in enumerate(pos_generation):
 
 #Cicle for number of iteration
 for i in range(number_iterations):
+    if i > 0:
+        activate = True
     #Evaluation Fitness each agent, bestFitness, worstFitness
     for agent in  population_array:
         if(i > 0 ):
@@ -100,8 +108,6 @@ for i in range(number_iterations):
     
     bestFitness = np.min([e.fit for e in population_array])
     worstFitness = np.max([e.fit for e in population_array])
-    # print("Best "+str(bestFitness))
-    # print("Worst: "+str(worstFitness))
     #calculate G costant function
     G = getGCostant(i,number_iterations)
 
@@ -116,19 +122,19 @@ for i in range(number_iterations):
         agent.mass = agent.mass / totalMass
 
     #Calculate a, pos(i+1) and vel(i+1) for each agent
-    for agent in  population_array:
+    for agent in population_array:
         #calculate Acceleration
-        ai = getAcceleration(agent,population_array,G, dimension)
+        ai = getAcceleration(agent,population_array,G, dimension, activate, i)
         agent.acc = ai
         #calculate velocity at time t+1
         vel1 = getVelocityV1(agent,dimension)
         agent.vel1 = vel1
-        
         #calculate position at time t+1
         pos1 = getPositionPos1(agent,dimension)
         agent.pos1 = pos1
     print(['Iteration nr: '+ str(i+1)+ ' best fitness score: ' + str(bestFitness)])
-    # print('Best agent: '+str(bestAgent))  
-    #print([e.pos for e in population_array])
-print("finito")     
+
+population_array.sort(key = (lambda x : x.fit))
+print(str(population_array[0]))
+print("-----finito-----")     
    
